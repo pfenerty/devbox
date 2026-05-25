@@ -46,7 +46,7 @@ RUN printf 'eval "$(direnv hook bash)"\n' > /etc/profile.d/direnv.sh
 # home. Drop the package-generated host keys so only the persistent one is presented.
 RUN rm -f /etc/ssh/ssh_host_* \
     && mkdir -p /run/sshd /etc/ssh/sshd_config.d \
-    && printf 'Port 2222\nHostKey /home/%s/.ssh-host/ssh_host_ed25519_key\nAuthorizedKeysFile /home/%s/.ssh/authorized_keys\nAllowUsers %s\nPermitRootLogin no\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nUsePAM no\n' \
+    && printf 'Port 2222\nHostKey /home/%s/.ssh-host/ssh_host_ed25519_key\nAuthorizedKeysFile /home/%s/.ssh/authorized_keys\nAllowUsers %s\nPermitRootLogin no\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nUsePAM yes\n' \
        "${DEV_USER}" "${DEV_USER}" "${DEV_USER}" > /etc/ssh/sshd_config.d/devbox.conf
 
 COPY entrypoint.sh /usr/local/bin/devbox-entrypoint
