@@ -7,7 +7,7 @@ image:
 
 dev:
   # Login user baked into the image.
-  user: patrick
+  user: dev
   # SSH public key authorized to log in. Public — safe to commit. REQUIRED.
   publicKey: ""
 

@@ -6,14 +6,16 @@
 # and sshd, for remote development over Tailscale + Zed. You SSH in as a non-root
 # user; each project's own Flox environment activates at runtime (via direnv/.envrc).
 #
-# Build args let you override the dev user; PUBLIC_KEY is supplied at runtime.
+# Static setup (user, sudo, sshd config) is baked here; the runtime entrypoint only
+# injects the authorized key + a persistent host key and owns the mounted home volume.
 FROM debian:12-slim
 
-ARG DEV_USER=patrick
+ARG DEV_USER=dev
 ARG DEV_UID=1000
 ARG DEV_GID=1000
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV DEV_USER=${DEV_USER}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl git openssh-server direnv sudo xz-utils locales procps less \
@@ -35,11 +37,17 @@ RUN set -eux; \
 RUN groupadd -g "${DEV_GID}" "${DEV_USER}" \
     && useradd -m -u "${DEV_UID}" -g "${DEV_GID}" -s /bin/bash "${DEV_USER}" \
     && printf '%s ALL=(ALL) NOPASSWD:ALL\n' "${DEV_USER}" > "/etc/sudoers.d/${DEV_USER}" \
-    && chmod 0440 "/etc/sudoers.d/${DEV_USER}" \
-    && mkdir -p /run/sshd
+    && chmod 0440 "/etc/sudoers.d/${DEV_USER}"
 
 # direnv hook for login shells, so a project's Flox env auto-activates from its .envrc.
 RUN printf 'eval "$(direnv hook bash)"\n' > /etc/profile.d/direnv.sh
+
+# sshd: pubkey-only, non-root, port 2222, with a persistent host key under the user's
+# home. Drop the package-generated host keys so only the persistent one is presented.
+RUN rm -f /etc/ssh/ssh_host_* \
+    && mkdir -p /run/sshd /etc/ssh/sshd_config.d \
+    && printf 'Port 2222\nHostKey /home/%s/.ssh-host/ssh_host_ed25519_key\nAuthorizedKeysFile /home/%s/.ssh/authorized_keys\nAllowUsers %s\nPermitRootLogin no\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nUsePAM no\n' \
+       "${DEV_USER}" "${DEV_USER}" "${DEV_USER}" > /etc/ssh/sshd_config.d/devbox.conf
 
 COPY entrypoint.sh /usr/local/bin/devbox-entrypoint
 RUN chmod +x /usr/local/bin/devbox-entrypoint

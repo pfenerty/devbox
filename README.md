@@ -32,16 +32,16 @@ Needs a public key at runtime and a persistent home volume:
 ```bash
 docker run -d -p 2222:2222 \
   -e PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)" \
-  -v devbox-home:/home/patrick \
+  -v devbox-home:/home/dev \
   ghcr.io/<owner>/devbox:latest
 
-ssh -p 2222 patrick@localhost
+ssh -p 2222 dev@localhost
 ```
 
 | Env var      | Default   | Purpose                              |
 |--------------|-----------|--------------------------------------|
 | `PUBLIC_KEY` | (none)    | Authorized SSH public key (required) |
-| `DEV_USER`   | `patrick` | Login user                           |
+| `DEV_USER`   | `dev`     | Login user                           |
 
 sshd listens on **2222**; login is **pubkey-only**, non-root, `AllowUsers` the dev user.
 
@@ -62,7 +62,7 @@ helm install devbox ./chart -n dev-spaces \
   --set dev.publicKey="ssh-ed25519 AAAA... you@host"
 
 # from GHCR (OCI)
-helm install devbox oci://ghcr.io/pfenerty/charts/devbox --version 0.1.0 -n dev-spaces \
+helm install devbox oci://ghcr.io/pfenerty/charts/devbox --version 0.2.0 -n dev-spaces \
   --set dev.publicKey="ssh-ed25519 AAAA... you@host"
 ```
 
@@ -95,7 +95,7 @@ spec:
   interval: 30m
   url: oci://ghcr.io/pfenerty/charts/devbox
   ref:
-    tag: "0.1.0"
+    tag: "0.2.0"
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -117,7 +117,7 @@ spec:
 ## Using a project's Flox env
 
 ```bash
-ssh patrick@<host>
+ssh dev@<host>
 git clone <repo> && cd <repo>     # repo carries its own .flox + .envrc
 direnv allow                       # Flox env activates; toolchain on PATH
 ```
