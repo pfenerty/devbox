@@ -1,0 +1,14 @@
+apiVersion: v2
+name: devbox
+description: A Flox dev-workspace exposed on a Tailscale tailnet for remote development (SSH / Zed)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - devbox
+  - flox
+  - tailscale
+  - remote-development
+home: https://github.com/pfenerty/devbox
+maintainers:
+  - name: pfenerty

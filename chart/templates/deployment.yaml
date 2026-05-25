@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devbox.fullname" . }}
+  labels:
+    {{- include "devbox.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "devbox.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "devbox.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: workspace
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DEV_USER
+              value: {{ .Values.dev.user | quote }}
+            - name: PUBLIC_KEY
+              value: {{ .Values.dev.publicKey | quote }}
+          ports:
+            - containerPort: {{ .Values.ssh.port }}
+              name: ssh
+          volumeMounts:
+            - name: home
+              mountPath: /home/{{ .Values.dev.user }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: tailscale
+          image: {{ .Values.tailscale.image }}
+          env:
+            - name: TS_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.tailscale.authKey.existingSecret }}
+                  key: {{ .Values.tailscale.authKey.key }}
+            - name: TS_HOSTNAME
+              value: {{ .Values.tailscale.hostname | quote }}
+            - name: TS_USERSPACE
+              value: "true"
+            - name: TS_EXTRA_ARGS
+              value: "--advertise-tags={{ .Values.tailscale.tags }}"
+            - name: TS_STATE_DIR
+              value: /var/lib/tailscale
+            - name: TS_KUBE_SECRET
+              value: ""
+            - name: TS_SERVE_CONFIG
+              value: /config/serve-config.json
+          volumeMounts:
+            - name: serve
+              mountPath: /config
+            - name: ts-state
+              mountPath: /var/lib/tailscale
+          resources:
+            {{- toYaml .Values.tailscale.resources | nindent 12 }}
+      volumes:
+        - name: serve
+          configMap:
+            name: {{ include "devbox.fullname" . }}-ts-serve
+        - name: home
+          persistentVolumeClaim:
+            claimName: {{ include "devbox.fullname" . }}-home
+        - name: ts-state
+          persistentVolumeClaim:
+            claimName: {{ include "devbox.fullname" . }}-ts-state

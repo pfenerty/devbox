@@ -1,0 +1,60 @@
+# Default values for the devbox chart.
+
+image:
+  repository: ghcr.io/pfenerty/devbox
+  tag: latest
+  pullPolicy: Always
+
+dev:
+  # Login user baked into the image.
+  user: patrick
+  # SSH public key authorized to log in. Public — safe to commit. REQUIRED.
+  publicKey: ""
+
+ssh:
+  # Container port sshd listens on; tailscale serve forwards tailnet :22 here.
+  port: 2222
+
+tailscale:
+  image: tailscale/tailscale:latest
+  # MagicDNS hostname the workspace claims on your tailnet.
+  hostname: devbox
+  # Tag advertised by the sidecar (must be permitted by your tailnet ACL on port 22).
+  tags: "tag:k8s"
+  # Auth key is sensitive — reference an existing (e.g. SOPS-managed) secret, don't inline it.
+  authKey:
+    existingSecret: dev-ts-authkey
+    key: TS_AUTHKEY
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+persistence:
+  # Empty = cluster default StorageClass.
+  storageClass: ""
+  # Home volume (repos, dotfiles, ssh host key) — persists across restarts.
+  home:
+    size: 20Gi
+  # Tailscale state — keeps a stable node identity/hostname across restarts.
+  tailscaleState:
+    size: 128Mi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+# Pin to a node (e.g. an amd64 worker): { kubernetes.io/arch: amd64 }
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+nameOverride: ""
+fullnameOverride: ""

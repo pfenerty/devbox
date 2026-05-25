@@ -1,0 +1,39 @@
+name: chart
+
+# Packages the Helm chart and pushes it to GHCR as an OCI artifact:
+#   oci://ghcr.io/<owner>/charts/devbox:<chart-version>
+# (Published under charts/ so it doesn't collide with the container image
+# ghcr.io/<owner>/devbox.) Bump version in chart/Chart.yaml to release a new one.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "chart/**"
+      - ".github/workflows/chart.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Lint
+        run: helm lint chart --set dev.publicKey="ssh-ed25519 AAAA ci@lint"
+
+      - name: Package and push
+        run: |
+          helm package chart --destination /tmp/chart
+          helm push /tmp/chart/devbox-*.tgz "oci://ghcr.io/${{ github.repository_owner }}/charts"
