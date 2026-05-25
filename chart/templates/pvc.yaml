@@ -19,6 +19,21 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  name: {{ include "devbox.fullname" . }}-nix
+  labels:
+    {{- include "devbox.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.persistence.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.nix.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
   name: {{ include "devbox.fullname" . }}-ts-state
   labels:
     {{- include "devbox.labels" . | nindent 4 }}

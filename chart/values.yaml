@@ -39,6 +39,11 @@ persistence:
   # Home volume (repos, dotfiles, ssh host key) — persists across restarts.
   home:
     size: 20Gi
+  # Nix store (/nix). Seeded from the image on first boot and re-seeded on image change
+  # (see the seed-nix init container), so the warm store persists across restarts and
+  # flox activate doesn't re-download. Regenerable cache — not retained on uninstall.
+  nix:
+    size: 10Gi
   # Tailscale state — keeps a stable node identity/hostname across restarts.
   tailscaleState:
     size: 128Mi

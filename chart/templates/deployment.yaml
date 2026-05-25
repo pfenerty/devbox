@@ -28,6 +28,33 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+        # Seed the persistent /nix PVC from the image's baked store. flox and nix-daemon
+        # are symlinked/linked into /nix/store, so an empty mount would break them; and
+        # because those paths are pinned by hash, a store left over from an older image
+        # would break the new flox. Keying the seed on `readlink /usr/bin/flox` re-seeds
+        # automatically whenever the image's flox closure changes, and is a cheap no-op
+        # otherwise.
+        - name: seed-nix
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              ref="$(readlink -f /usr/bin/flox)"
+              if [ "$(cat /mnt/nix/.image-store-ref 2>/dev/null || true)" = "$ref" ]; then
+                echo "seed-nix: /nix store up to date ($ref)"
+                exit 0
+              fi
+              echo "seed-nix: seeding /nix store from image ($ref)"
+              find /mnt/nix -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+              cp -a /nix/. /mnt/nix/
+              printf '%s\n' "$ref" > /mnt/nix/.image-store-ref
+          volumeMounts:
+            - name: nix
+              mountPath: /mnt/nix
       containers:
         - name: workspace
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -43,6 +70,8 @@ spec:
           volumeMounts:
             - name: home
               mountPath: /home/{{ .Values.dev.user }}
+            - name: nix
+              mountPath: /nix
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
         - name: tailscale
@@ -79,6 +108,9 @@ spec:
         - name: home
           persistentVolumeClaim:
             claimName: {{ include "devbox.fullname" . }}-home
+        - name: nix
+          persistentVolumeClaim:
+            claimName: {{ include "devbox.fullname" . }}-nix
         - name: ts-state
           persistentVolumeClaim:
             claimName: {{ include "devbox.fullname" . }}-ts-state

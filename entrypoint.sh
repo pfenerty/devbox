@@ -40,5 +40,19 @@ else
   echo "WARNING: PUBLIC_KEY not set — no one can log in" >&2
 fi
 
+# Supervise the Nix daemon. Flox installs Nix in daemon mode (builds are brokered by
+# nix-daemon over a socket), but the container has no init to start or restart it, so run
+# it in a small loop. Without it, `flox activate` can't reach the daemon, falls back to
+# building directly as the unprivileged user, and dies with
+# "/nix/var/nix/db/big-lock: Permission denied". tini (PID 1) reaps it on exit.
+if [ -x /usr/sbin/nix-daemon ]; then
+  rm -f /nix/var/nix/daemon-socket/socket    # drop any stale socket from a prior boot
+  ( while true; do
+      /usr/sbin/nix-daemon --daemon
+      echo "devbox: nix-daemon exited ($?); restarting in 1s" >&2
+      sleep 1
+    done ) &
+fi
+
 mkdir -p /run/sshd
 exec /usr/sbin/sshd -D -e

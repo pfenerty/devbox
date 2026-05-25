@@ -18,7 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV DEV_USER=${DEV_USER}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git openssh-server direnv sudo xz-utils locales procps less \
+      ca-certificates curl git openssh-server direnv sudo xz-utils locales procps less tini \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Flox. NOTE: confirm the package URL against https://flox.dev/docs/install-flox/
@@ -53,4 +53,6 @@ COPY entrypoint.sh /usr/local/bin/devbox-entrypoint
 RUN chmod +x /usr/local/bin/devbox-entrypoint
 
 EXPOSE 2222
-ENTRYPOINT ["/usr/local/bin/devbox-entrypoint"]
+# tini as PID 1 reaps zombies and (with -g) propagates signals to the whole process
+# group, so both sshd and the backgrounded nix-daemon supervisor shut down cleanly.
+ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/devbox-entrypoint"]
