@@ -9,11 +9,6 @@ name: chart
 # packaging so the published chart pins an immutable reference (not committed to the repo).
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "chart/**"
-      - ".github/workflows/chart.yml"
   workflow_dispatch:
 
 permissions:
