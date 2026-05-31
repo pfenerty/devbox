@@ -70,8 +70,8 @@ safe to commit) is passed via values.
 ## Common commands
 
 ```bash
-# Local multi-arch image build (CI uses a native arm64 runner; no QEMU)
-docker buildx build --platform linux/arm64 -t ghcr.io/<owner>/devbox:latest --push .
+# Local multi-arch image build (CI uses native amd64 + arm64 runners; no QEMU)
+docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/<owner>/devbox:latest --push .
 
 # Run locally
 docker run -d -p 2222:2222 \

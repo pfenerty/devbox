@@ -3,6 +3,7 @@
 image:
   repository: ghcr.io/pfenerty/devbox
   tag: latest
+  digest: ""  # CI injects sha256:... at publish time; empty here means fall back to tag
   pullPolicy: Always
 
 dev:
